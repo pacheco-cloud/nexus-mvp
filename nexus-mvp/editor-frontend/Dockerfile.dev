@@ -1,0 +1,17 @@
+# Dockerfile para desenvolvimento
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar package.json e instalar dependências
+COPY package*.json ./
+RUN npm install
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta do Vite
+EXPOSE 5173
+
+# Comando para iniciar em modo desenvolvimento
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

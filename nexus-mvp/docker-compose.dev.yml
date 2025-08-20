@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  nexus-editor-dev:
+    build:
+      context: ./editor-frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:5173"
+    volumes:
+      - ./editor-frontend/src:/app/src
+    environment:
+      - NODE_ENV=development
+
+  nexus-api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
