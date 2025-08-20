@@ -46,14 +46,11 @@ export const useEditorStore = defineStore('editor', {
   actions: {
     // --- ACTIONS DE PROJETOS (com modificações) ---
     async fetchProjects() {
-      console.log('📋 Buscando projetos...');
       const response = await fetch(`${API_BASE_URL}/projects`);
       this.projects = await response.json();
-      console.log('✅ Projetos carregados:', this.projects);
     },
 
     async loadProject(projectId) {
-      console.log(`🔄 A carregar projeto ID: ${projectId}`);
       // Agora, ao carregar um projeto, também buscamos as suas páginas
       const response = await fetch(`${API_BASE_URL}/projects/${projectId}/pages`);
       this.pages = await response.json();
@@ -70,11 +67,9 @@ export const useEditorStore = defineStore('editor', {
         this.elements = [];
         this.currentPageId = null;
       }
-      console.log(`✅ Projeto ${projectId} carregado com ${this.pages.length} páginas.`);
     },
 
     async createNewProject(projectName) {
-      console.log(`✨ Criando novo projeto: ${projectName}`);
       try {
         const response = await fetch(`${API_BASE_URL}/projects`, {
           method: 'POST',
@@ -84,15 +79,15 @@ export const useEditorStore = defineStore('editor', {
         
         if (response.ok) {
           const newProject = await response.json();
-          console.log('✅ Projeto criado:', newProject);
+
           await this.fetchProjects(); // Recarrega a lista
           await this.loadProject(newProject.id); // Carrega o novo projeto
         } else {
-          console.error('❌ Erro ao criar projeto:', response.status, response.statusText);
+
           alert('Erro ao criar projeto. Verifique o console para detalhes.');
         }
       } catch (error) {
-        console.error('❌ Erro de conexão ao criar projeto:', error);
+
         alert('Erro de conexão. Verifique se o backend está rodando.');
       }
     },
@@ -104,7 +99,7 @@ export const useEditorStore = defineStore('editor', {
             await this.autoSaveCurrentPage();
         }
         
-        console.log(`🔄 A carregar elementos da página ID: ${pageId}`);
+
         const response = await fetch(`${API_BASE_URL}/pages/${pageId}/elements`);
         const elementsData = await response.json();
         this.elements = elementsData.map(el => ({
@@ -124,7 +119,7 @@ export const useEditorStore = defineStore('editor', {
 
     async createNewPage(pageName) {
         if (!this.currentProjectId) return;
-        console.log(`✨ A criar nova página: ${pageName}`);
+
         const response = await fetch(`${API_BASE_URL}/projects/${this.currentProjectId}/pages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -160,7 +155,7 @@ export const useEditorStore = defineStore('editor', {
       this.selectedElementId = elementId;
       this.hasUnsavedChanges = true; // Marca como tendo mudanças
       
-      console.log(`✅ Elemento ${type} adicionado:`, newElement);
+
       
       // Auto-save após adicionar elemento - somente se habilitado
       if (this.autoSaveEnabled) {
@@ -170,7 +165,7 @@ export const useEditorStore = defineStore('editor', {
 
     selectElement(elementId) {
       this.selectedElementId = elementId;
-      console.log(`🎯 Elemento selecionado: ${elementId}`);
+
     },
 
     updateElementProperty(elementId, property, value) {
@@ -178,7 +173,7 @@ export const useEditorStore = defineStore('editor', {
       if (element) {
         element.properties[property] = value;
         this.hasUnsavedChanges = true; // Marca como tendo mudanças
-        console.log(`📝 Propriedade ${property} atualizada para: ${value}`);
+
         
         // Auto-save após atualizar propriedade - somente se habilitado
         if (this.autoSaveEnabled) {
@@ -206,7 +201,7 @@ export const useEditorStore = defineStore('editor', {
         this.elements.splice(index, 1);
         this.selectedElementId = null;
         this.hasUnsavedChanges = true;
-        console.log(`🗑️ Elemento ${elementId} removido`);
+
         
         // Auto-save após remover elemento - somente se habilitado
         if (this.autoSaveEnabled) {
@@ -243,13 +238,13 @@ export const useEditorStore = defineStore('editor', {
     },
 
     setPreviewMode(mode) {
-      console.log(`🖼️ Alterando modo de visualização para: ${mode}`);
+
       this.previewMode = mode;
     },
 
     toggleEditPreview() {
       this.isPreviewMode = !this.isPreviewMode;
-      console.log(`🔄 Modo alterado para: ${this.isPreviewMode ? 'Preview' : 'Edição'}`);
+
     },
 
     // Funções para responsividade
@@ -289,7 +284,7 @@ export const useEditorStore = defineStore('editor', {
       
       this.isSaving = true;
       try {
-        console.log(`💾 Auto-salvando página ID: ${this.currentPageId}`);
+
         await fetch(`${API_BASE_URL}/pages/${this.currentPageId}/elements`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -299,13 +294,13 @@ export const useEditorStore = defineStore('editor', {
         });
         
         this.hasUnsavedChanges = false;
-        console.log('✅ Auto-save realizado com sucesso!');
+
         
         // Mostrar feedback visual discreto
         this.showAutoSaveFeedback();
         
       } catch (error) {
-        console.error('❌ Erro no auto-save:', error);
+
       } finally {
         this.isSaving = false;
       }
@@ -365,7 +360,7 @@ export const useEditorStore = defineStore('editor', {
     // Função para desativar/ativar auto-save
     toggleAutoSave() {
       this.autoSaveEnabled = !this.autoSaveEnabled;
-      console.log(`🔄 Auto-save ${this.autoSaveEnabled ? 'ATIVADO' : 'DESATIVADO'}`);
+
       
       if (this.autoSaveEnabled) {
         this.startAutoSave();
@@ -382,7 +377,7 @@ export const useEditorStore = defineStore('editor', {
       
       this.isSaving = true;
       try {
-        console.log(`💾 Salvando página manualmente ID: ${this.currentPageId}`);
+
         await fetch(`${API_BASE_URL}/pages/${this.currentPageId}/elements`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -392,11 +387,11 @@ export const useEditorStore = defineStore('editor', {
         });
         
         this.hasUnsavedChanges = false;
-        console.log('✅ Página salva manualmente com sucesso!');
+
         alert('Página salva com sucesso!');
         
       } catch (error) {
-        console.error('❌ Erro ao salvar página:', error);
+
         alert('Erro ao salvar página!');
       } finally {
         this.isSaving = false;

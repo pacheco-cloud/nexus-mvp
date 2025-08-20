@@ -38,7 +38,7 @@ const availableComponents = ref([
 
 // Função para lidar com o início do drag
 function handleDragStart(event, component) {
-  console.log('Iniciando drag:', component);
+
   
   // Configurar dados para transferência
   event.dataTransfer.setData('application/json', JSON.stringify({
@@ -56,7 +56,7 @@ function handleDragStart(event, component) {
 // Função para resetar o visual após o drag
 function handleDragEnd(event) {
   event.target.style.opacity = '1';
-  console.log('Drag finalizado');
+
 }
 </script>
 

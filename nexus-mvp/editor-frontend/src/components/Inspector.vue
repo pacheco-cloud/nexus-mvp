@@ -68,21 +68,21 @@ import { useEditorStore } from '../store/editor.js';
 const editorStore = useEditorStore();
 
 function updateText(value) {
-  console.log('🎯 Atualizando texto para:', value);
+
   if (editorStore.selectedElementId) {
     editorStore.updateElementProperty(editorStore.selectedElementId, 'text', value);
   }
 }
 
 function updateFontSize(value) {
-  console.log('🎯 Atualizando fontSize para:', value);
+
   if (editorStore.selectedElementId) {
     editorStore.updateElementProperty(editorStore.selectedElementId, 'fontSize', parseFloat(value) || 16);
   }
 }
 
 function updateBackgroundColor(value) {
-  console.log('🎯 Atualizando backgroundColor para:', value);
+
   if (editorStore.selectedElementId) {
     editorStore.updateElementProperty(editorStore.selectedElementId, 'backgroundColor', value);
   }

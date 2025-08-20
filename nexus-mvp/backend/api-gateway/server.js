@@ -121,7 +121,7 @@ app.put('/projects/:id', async (req, res) => {
       );
     }
     await client.query('COMMIT');
-    console.log(`✅ Projeto ID ${id} salvo com sucesso com ${elements.length} elementos.`);
+
     res.status(200).json({ message: 'Projeto salvo com sucesso!' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -202,7 +202,7 @@ app.put('/pages/:pageId/elements', async (req, res) => {
       );
     }
     await client.query('COMMIT');
-    console.log(`✅ Elementos da página ID ${pageId} salvos com sucesso.`);
+
     res.status(200).json({ message: 'Página salva com sucesso!' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -233,7 +233,7 @@ app.post('/publish', (req, res) => {
   fs.writeFileSync(path.join(pageDir, 'style.css'), cssContent);
   fs.writeFileSync(path.join(pageDir, 'script.js'), jsContent); // ADICIONE ESTA LINHA
 
-  console.log(`📝 Página gerada e salva em: ${pageDir}`);
+
   
   // 4. Retorna a URL real e funcional
   const publicUrl = `http://localhost:3002/${pageId}/`;

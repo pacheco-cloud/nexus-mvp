@@ -56,7 +56,7 @@ async function createProject() {
     await editorStore.createNewProject(newProjectName.value.trim());
     newProjectName.value = '';
   } catch (error) {
-    console.error('Erro ao criar projeto:', error);
+
   } finally {
     isCreating.value = false;
   }

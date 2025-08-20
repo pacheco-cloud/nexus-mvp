@@ -1,5 +1,3 @@
-// translator.js ATUALIZADO
-
 function generateHTML(elements) {
   const head = `
     <meta charset="UTF-8">
@@ -9,50 +7,46 @@ function generateHTML(elements) {
   `;
   const body = elements.map(el => {
     const textContent = el.properties.text || el.type;
-    const style = `
-      position: absolute; 
-      left: ${el.position.x}px; 
-      top: ${el.position.y}px;
-    `.replace(/\s+/g, ' ').trim();
-    
-    return `<div id="${el.id}" class="element" style="${style}">${textContent}</div>`;
+    return `<div id="${el.id}" class="element">${textContent}</div>`;
   }).join('\n');
   
-  // Adicionamos a tag <script> no final do body
   return `<!DOCTYPE html><html><head>${head}</head><body>${body}<script src="script.js"></script></body></html>`;
 }
 
 function generateCSS(elements) {
   const baseStyles = `
-body { margin: 0; }
-.element { position: absolute; box-sizing: border-box; }
-`;
+body { 
+  margin: 0; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.element { 
+  position: absolute; 
+  box-sizing: border-box; 
+}`;
 
   const elementStyles = elements.map(el => {
     const props = el.properties;
     return `
 #${el.id} {
+  left: ${el.position.x}px;
+  top: ${el.position.y}px;
   font-size: ${props.fontSize || 16}px;
   background-color: ${props.backgroundColor || 'transparent'};
-  color: ${props.fontColor || '#000000'};
+  color: ${props.color || props.fontColor || '#000000'};
   border: 1px solid #333;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: ${props.borderRadius || 6}px;
 }`;
   }).join('\n');
   
   return baseStyles + elementStyles;
 }
 
-// NOVA FUNÇÃO
 function generateJS(elements) {
-  // Filtra apenas os elementos que têm uma ação definida
   const interactiveElements = elements.filter(el => el.properties.action);
 
   const eventListeners = interactiveElements.map(el => {
     const action = el.properties.action;
-    
-    // Por enquanto, só lidamos com a ação 'alert'
     if (action && action.type === 'alert') {
       return `
         const element_${el.id} = document.getElementById('${el.id}');
@@ -60,15 +54,11 @@ function generateJS(elements) {
           element_${el.id}.addEventListener('click', () => {
             alert(\`${action.message}\`);
           });
-        }
-      `;
+        }`;
     }
-    return ''; // Retorna string vazia para outros casos
+    return '';
   }).join('\n');
-
-  // Garante que o script rode apenas depois que a página carregar
   return `document.addEventListener('DOMContentLoaded', () => {${eventListeners}});`;
 }
 
-// Exporta a nova função
 module.exports = { generateHTML, generateCSS, generateJS };

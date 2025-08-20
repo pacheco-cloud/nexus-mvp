@@ -38,7 +38,7 @@ const position = ref({
 watch(
   () => [props.element.position, editorStore.previewMode],
   ([newPosition, newMode]) => {
-    console.log(`🔄 WATCH ATIVADO: Modo ${newMode}, Posição:`, newPosition);
+
     position.value = {
       x: newPosition.x,
       y: newPosition.y
@@ -58,8 +58,8 @@ function selectElement() {
 }
 
 function startDrag(event) {
-  console.log('🎯 Iniciando drag do elemento:', props.element.id);
-  console.log('🎯 Elemento de edição encontrado:', !!document.querySelector('.edit-canvas'));
+
+
   
   isDragging.value = true;
   
@@ -70,7 +70,7 @@ function startDrag(event) {
     y: event.clientY - rect.top
   };
   
-  console.log('🎯 Offset inicial:', dragStart.value);
+
   
   // Seleciona o elemento
   selectElement();
@@ -89,7 +89,7 @@ function handleDrag(event) {
   // Calcula nova posição relativa ao Canvas - busca especificamente o canvas de edição
   const canvas = document.querySelector('.edit-canvas');
   if (!canvas) {
-    console.warn('Canvas de edição não encontrado!');
+
     return;
   }
   
@@ -104,13 +104,13 @@ function handleDrag(event) {
     y: Math.max(0, Math.min(newY, canvasRect.height - 50))
   };
   
-  console.log('🖱️ Arrastar elemento:', props.element.id, 'para:', position.value);
+
 }
 
 function stopDrag() {
   if (!isDragging.value) return;
   
-  console.log('🎯 Finalizando drag. Nova posição:', position.value);
+
   
   isDragging.value = false;
   
@@ -127,7 +127,7 @@ function stopDrag() {
 
 // Estilo computado com responsividade FORÇADA
 const elementStyle = computed(() => {
-  console.log(`🎨 Recalculando estilo para elemento ${props.element.id} no modo ${editorStore.previewMode}`);
+
   
   // SEMPRE usa o sistema responsivo como base
   const responsiveStyle = getResponsiveStyle(props.element);
@@ -136,7 +136,7 @@ const elementStyle = computed(() => {
   if (!editorStore.isPreviewMode && isDragging.value) {
     responsiveStyle.left = `${position.value.x}px`;
     responsiveStyle.top = `${position.value.y}px`;
-    console.log(`🖱️ Usando posição de drag:`, position.value);
+
   }
   
   // Adiciona estilos de interação
@@ -152,7 +152,7 @@ const elementStyle = computed(() => {
     border: editorStore.selectedElementId === props.element.id ? '2px solid #ff4500' : '2px solid #007bff',
   };
   
-  console.log(`🎨 Estilo final aplicado:`, finalStyle);
+
   return finalStyle;
 });
 

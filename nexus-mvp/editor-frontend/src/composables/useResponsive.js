@@ -34,7 +34,7 @@ export function useResponsive() {
     const baseFontSize = element.properties.fontSize || 16;
     const scaledFontSize = Math.round(baseFontSize * scaleX);
     
-    console.log(`📱 ${mode.toUpperCase()}: ${element.id} de (${element.position.x},${element.position.y}) para (${scaledX},${scaledY})`);
+
     
     return {
       position: 'absolute',

@@ -63,7 +63,7 @@ function cancelAddPage() {
 async function createPage() {
   if (!newPageName.value.trim()) return;
   
-  console.log(`🌟 Criando nova página: ${newPageName.value}`);
+
   await editorStore.createNewPage(newPageName.value);
   newPageName.value = '';
   isAddingPage.value = false;

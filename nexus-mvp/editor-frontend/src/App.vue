@@ -152,7 +152,7 @@ function getResponsiveStatus() {
 }
 
 async function publishPage() {
-  console.log('Publicando página...');
+
   
   // 1. Pegamos o estado atual dos elementos da nossa store
   const pageState = editorStore.elements;
@@ -183,7 +183,7 @@ async function publishPage() {
     alert(`Página publicada com sucesso! Acesse em: ${result.url}`);
     
   } catch (error) {
-    console.error('Falha ao publicar a página:', error);
+
     alert('Erro ao publicar. O serviço de back-end está rodando? (Veja o console para detalhes)');
   }
 }

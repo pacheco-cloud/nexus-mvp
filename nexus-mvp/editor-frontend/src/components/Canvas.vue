@@ -211,11 +211,11 @@ function handleDrop(event) {
   event.preventDefault();
   isDragOver.value = false;
   
-  console.log('Drop detectado no modo edição!');
+
   
   try {
     const droppedData = JSON.parse(event.dataTransfer.getData('application/json'));
-    console.log('Dados recebidos:', droppedData);
+
     
     // Pegamos a posição do mouse relativa ao Canvas
     const canvasRect = dropZoneRef.value.getBoundingClientRect();
@@ -224,14 +224,14 @@ function handleDrop(event) {
       y: event.clientY - canvasRect.top,
     };
     
-    console.log('Posição calculada:', position);
+
 
     // Chamamos a action da store
     editorStore.addElement(droppedData.type, position);
     
-    console.log('Elemento adicionado à editorStore');
+
   } catch (error) {
-    console.error('Erro ao processar drop:', error);
+
   }
 }
 
