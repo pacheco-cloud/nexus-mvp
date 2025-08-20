@@ -12,8 +12,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useEditorStore } from '../store/editor.js';
+import { useResponsive } from '../composables/useResponsive.js';
 
 // Recebemos os dados do elemento como uma 'prop' do componente pai (o Canvas)
 const props = defineProps({
@@ -24,13 +25,29 @@ const props = defineProps({
 });
 
 const editorStore = useEditorStore();
+const { getResponsiveStyle } = useResponsive();
 const elementRef = ref(null);
 
-// Posição reativa do elemento
+// Posição reativa do elemento (local para drag)
 const position = ref({
   x: props.element.position.x,
   y: props.element.position.y
 });
+
+// Watch para atualizar posição quando o elemento muda ou modo muda
+watch(
+  () => [props.element.position, editorStore.previewMode],
+  ([newPosition, newMode]) => {
+    console.log(`🔄 WATCH ATIVADO: Modo ${newMode}, Posição:`, newPosition);
+    position.value = {
+      x: newPosition.x,
+      y: newPosition.y
+    };
+    // Força reatividade
+    elementRef.value?.style.setProperty('--update-trigger', Date.now());
+  },
+  { deep: true, immediate: true }
+);
 
 // Estado de arraste
 const isDragging = ref(false);
@@ -42,6 +59,7 @@ function selectElement() {
 
 function startDrag(event) {
   console.log('🎯 Iniciando drag do elemento:', props.element.id);
+  console.log('🎯 Elemento de edição encontrado:', !!document.querySelector('.edit-canvas'));
   
   isDragging.value = true;
   
@@ -51,6 +69,8 @@ function startDrag(event) {
     x: event.clientX - rect.left,
     y: event.clientY - rect.top
   };
+  
+  console.log('🎯 Offset inicial:', dragStart.value);
   
   // Seleciona o elemento
   selectElement();
@@ -66,18 +86,25 @@ function startDrag(event) {
 function handleDrag(event) {
   if (!isDragging.value) return;
   
-  // Calcula nova posição relativa ao Canvas
-  const canvas = document.querySelector('.canvas-panel');
+  // Calcula nova posição relativa ao Canvas - busca especificamente o canvas de edição
+  const canvas = document.querySelector('.edit-canvas');
+  if (!canvas) {
+    console.warn('Canvas de edição não encontrado!');
+    return;
+  }
+  
   const canvasRect = canvas.getBoundingClientRect();
   
   const newX = event.clientX - canvasRect.left - dragStart.value.x;
   const newY = event.clientY - canvasRect.top - dragStart.value.y;
   
-  // Atualiza posição local
+  // Atualiza posição local com limites mais permissivos
   position.value = {
-    x: Math.max(0, newX), // Impede sair pela esquerda/cima
-    y: Math.max(0, newY)
+    x: Math.max(0, Math.min(newX, canvasRect.width - 100)), // Limita pelo tamanho do canvas
+    y: Math.max(0, Math.min(newY, canvasRect.height - 50))
   };
+  
+  console.log('🖱️ Arrastar elemento:', props.element.id, 'para:', position.value);
 }
 
 function stopDrag() {
@@ -98,17 +125,36 @@ function stopDrag() {
   });
 }
 
-// Estilo computado com posição dinâmica
-const elementStyle = computed(() => ({
-  position: 'absolute',
-  left: `${position.value.x}px`,
-  top: `${position.value.y}px`,
-  backgroundColor: props.element.properties.backgroundColor || 'white',
-  fontSize: `${props.element.properties.fontSize || 16}px`,
-  cursor: isDragging.value ? 'grabbing' : 'grab',
-  userSelect: 'none',
-  zIndex: editorStore.selectedElementId === props.element.id ? 10 : 1,
-}));
+// Estilo computado com responsividade FORÇADA
+const elementStyle = computed(() => {
+  console.log(`🎨 Recalculando estilo para elemento ${props.element.id} no modo ${editorStore.previewMode}`);
+  
+  // SEMPRE usa o sistema responsivo como base
+  const responsiveStyle = getResponsiveStyle(props.element);
+  
+  // Se estiver no modo edição E arrastando, usa posição local
+  if (!editorStore.isPreviewMode && isDragging.value) {
+    responsiveStyle.left = `${position.value.x}px`;
+    responsiveStyle.top = `${position.value.y}px`;
+    console.log(`🖱️ Usando posição de drag:`, position.value);
+  }
+  
+  // Adiciona estilos de interação
+  const finalStyle = {
+    ...responsiveStyle,
+    backgroundColor: props.element.properties.backgroundColor || 'white',
+    cursor: isDragging.value ? 'grabbing' : (editorStore.isPreviewMode ? 'default' : 'grab'),
+    userSelect: 'none',
+    zIndex: editorStore.selectedElementId === props.element.id ? 10 : (isDragging.value ? 15 : 1),
+    transform: isDragging.value ? 'scale(1.02)' : 'scale(1)',
+    transition: isDragging.value ? 'none' : 'all 0.3s ease',
+    pointerEvents: editorStore.isPreviewMode ? 'auto' : 'all',
+    border: editorStore.selectedElementId === props.element.id ? '2px solid #ff4500' : '2px solid #007bff',
+  };
+  
+  console.log(`🎨 Estilo final aplicado:`, finalStyle);
+  return finalStyle;
+});
 
 // Cleanup ao desmontar componente
 onUnmounted(() => {
@@ -129,7 +175,7 @@ onUnmounted(() => {
   min-width: 100px;
   text-align: center;
   position: absolute;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .canvas-component.is-selected {
@@ -137,11 +183,13 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.4);
 }
 
-.canvas-component:hover {
+.canvas-component:hover:not(.is-selected) {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-color: #0056b3;
 }
 
 .canvas-component:active {
   cursor: grabbing !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 </style>

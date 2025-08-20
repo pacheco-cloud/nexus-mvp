@@ -13,11 +13,20 @@
         {{ component.name }}
       </li>
     </ul>
+
+    <hr>
+    <div style="background: #e3f2fd; border: 2px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 8px;">
+      <h4 style="color: #1976d2; margin: 0 0 10px 0;">📄 GERENCIAR PÁGINAS</h4>
+      <p style="margin: 0 0 10px 0; color: #333;">Aqui você pode criar e gerenciar páginas:</p>
+      <PagesPanel />
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import PagesPanel from './PagesPanel.vue'; // 1. IMPORTAR O NOVO COMPONENTE
 
 // Lista dos nossos elementos do MVP
 const availableComponents = ref([

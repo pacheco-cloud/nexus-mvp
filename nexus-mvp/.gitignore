@@ -1,24 +1,45 @@
 ﻿# Dependências do Node.js
-/node_modules
-
-# Arquivos de Build e Produção
-/dist
-/.output
-
-# Logs
+node_modules/
 npm-debug.log*
 yarn-error.log
 yarn-debug.log*
 pnpm-debug.log*
 
+# Arquivos de Build e Produção
+dist/
+.output/
+build/
+
 # Arquivos de ambiente (contêm senhas e chaves de API)
 .env
 .env*.local
 
+# Arquivos temporários e cache
+.cache/
+.temp/
+.tmp/
+
 # Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
-# Arquivos de configuração de editores de código
+# Arquivos de configuração de editores
 .vscode/
 .idea/
+*.sublime-*
+
+# Docker
+.dockerignore
+
+# Database
+*.db
+*.sqlite
+postgres-data/
+
+# Published files (legacy)
+backend/api-gateway/published/
+
+# Logs
+*.log

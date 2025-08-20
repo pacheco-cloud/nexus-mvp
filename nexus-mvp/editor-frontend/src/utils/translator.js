@@ -9,10 +9,24 @@ function generateHTML(elements) {
   `;
   const body = elements.map(el => {
     const textContent = el.properties.text || el.type;
+    const props = el.properties;
+    
+    // Gera estilo inline COMPLETO para o elemento
     const style = `
       position: absolute; 
       left: ${el.position.x}px; 
       top: ${el.position.y}px;
+      font-size: ${props.fontSize || 16}px;
+      background-color: ${props.backgroundColor || 'white'};
+      color: ${props.fontColor || '#000000'};
+      border: 2px solid #007bff;
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      min-width: 100px;
+      text-align: center;
+      box-sizing: border-box;
+      cursor: ${props.action ? 'pointer' : 'default'};
     `.replace(/\s+/g, ' ').trim();
     
     return `<div id="${el.id}" class="element" style="${style}">${textContent}</div>`;
@@ -24,20 +38,76 @@ function generateHTML(elements) {
 
 function generateCSS(elements) {
   const baseStyles = `
-body { margin: 0; }
-.element { position: absolute; box-sizing: border-box; }
+body { 
+  margin: 0; 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+}
+.element { 
+  position: absolute; 
+  box-sizing: border-box; 
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.element:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Media queries para responsividade */
+@media screen and (max-width: 768px) {
+  .element {
+    transform: scale(0.9);
+    transform-origin: top left;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  .element {
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+}
 `;
 
   const elementStyles = elements.map(el => {
     const props = el.properties;
+    const baseFontSize = props.fontSize || 16;
+    
     return `
 #${el.id} {
-  font-size: ${props.fontSize || 16}px;
-  background-color: ${props.backgroundColor || 'transparent'};
+  font-size: ${baseFontSize}px;
+  background-color: ${props.backgroundColor || 'white'};
   color: ${props.fontColor || '#000000'};
-  border: 1px solid #333;
-  padding: 10px;
+  border: 2px solid #007bff;
+  padding: 12px;
   border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  min-width: 100px;
+  text-align: center;
+  cursor: ${props.action ? 'pointer' : 'default'};
+}
+
+#${el.id}:hover {
+  border-color: #0056b3;
+}
+
+#${el.id}:active {
+  transform: scale(0.98);
+}
+
+/* Responsividade específica do elemento */
+@media screen and (max-width: 768px) {
+  #${el.id} {
+    font-size: ${Math.round(baseFontSize * 0.9)}px;
+  }
+}
+
+@media screen and (max-width: 375px) {
+  #${el.id} {
+    font-size: ${Math.round(baseFontSize * 0.8)}px;
+  }
 }`;
   }).join('\n');
   
@@ -70,5 +140,5 @@ function generateJS(elements) {
   return `document.addEventListener('DOMContentLoaded', () => {${eventListeners}});`;
 }
 
-// Exporta a nova função
-module.exports = { generateHTML, generateCSS, generateJS };
+// Exporta usando sintaxe ES6 para o frontend
+export { generateHTML, generateCSS, generateJS };

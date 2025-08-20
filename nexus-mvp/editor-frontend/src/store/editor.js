@@ -1,9 +1,30 @@
 import { defineStore } from 'pinia';
 
+const API_BASE_URL = 'http://localhost:3002'; // A porta da API é 3002
+
 export const useEditorStore = defineStore('editor', {
   state: () => ({
+    projects: [],
+    currentProjectId: null,
+    pages: [], // NOVO: Lista de páginas do projeto atual
+    currentPageId: null, // NOVO: ID da página que estamos a editar
     elements: [],
     selectedElementId: null,
+    previewMode: 'desktop',
+    isPreviewMode: false, // true = preview, false = edição
+    
+    // Auto-save
+    autoSaveEnabled: true,
+    autoSaveInterval: null,
+    hasUnsavedChanges: false,
+    isSaving: false,
+    
+    // Dimensões base para responsividade
+    baseDimensions: {
+      desktop: { width: 1200, height: 800 },
+      tablet: { width: 768, height: 1024 },
+      mobile: { width: 375, height: 667 }
+    }
   }),
 
   getters: {
@@ -11,110 +32,375 @@ export const useEditorStore = defineStore('editor', {
       if (!state.selectedElementId) return null;
       return state.elements.find(element => element.id === state.selectedElementId);
     },
-    
+    currentProject: (state) => {
+      if (!state.currentProjectId) return null;
+      return state.projects.find(p => p.id === state.currentProjectId);
+    },
+    currentPage: (state) => { // NOVO
+      if (!state.currentPageId) return null;
+      return state.pages.find(p => p.id === state.currentPageId);
+    },
     elementCount: (state) => state.elements.length,
   },
 
   actions: {
-    addElement(type, position) {
-      console.log('🚀 EditorStore addElement chamado!');
-      console.log('📦 Tipo:', type, 'Posição:', position);
+    // --- ACTIONS DE PROJETOS (com modificações) ---
+    async fetchProjects() {
+      console.log('📋 Buscando projetos...');
+      const response = await fetch(`${API_BASE_URL}/projects`);
+      this.projects = await response.json();
+      console.log('✅ Projetos carregados:', this.projects);
+    },
 
+    async loadProject(projectId) {
+      console.log(`🔄 A carregar projeto ID: ${projectId}`);
+      // Agora, ao carregar um projeto, também buscamos as suas páginas
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/pages`);
+      this.pages = await response.json();
+      this.currentProjectId = projectId;
+      
+      // Se houver páginas, carrega a página "home" por padrão, ou a primeira disponível
+      if (this.pages.length > 0) {
+        // Procura pela página "home" primeiro
+        const homePage = this.pages.find(page => page.name.toLowerCase() === 'home');
+        const defaultPage = homePage || this.pages[0];
+        await this.loadPage(defaultPage.id);
+      } else {
+        // Se não houver páginas, limpa o canvas
+        this.elements = [];
+        this.currentPageId = null;
+      }
+      console.log(`✅ Projeto ${projectId} carregado com ${this.pages.length} páginas.`);
+    },
+
+    async createNewProject(projectName) {
+      console.log(`✨ Criando novo projeto: ${projectName}`);
+      try {
+        const response = await fetch(`${API_BASE_URL}/projects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: projectName }),
+        });
+        
+        if (response.ok) {
+          const newProject = await response.json();
+          console.log('✅ Projeto criado:', newProject);
+          await this.fetchProjects(); // Recarrega a lista
+          await this.loadProject(newProject.id); // Carrega o novo projeto
+        } else {
+          console.error('❌ Erro ao criar projeto:', response.status, response.statusText);
+          alert('Erro ao criar projeto. Verifique o console para detalhes.');
+        }
+      } catch (error) {
+        console.error('❌ Erro de conexão ao criar projeto:', error);
+        alert('Erro de conexão. Verifique se o backend está rodando.');
+      }
+    },
+    
+    // --- NOVAS ACTIONS PARA PÁGINAS ---
+    async loadPage(pageId) {
+        // Salva a página atual antes de trocar (auto-save) - somente se habilitado
+        if (this.currentPageId && this.hasUnsavedChanges && this.autoSaveEnabled) {
+            await this.autoSaveCurrentPage();
+        }
+        
+        console.log(`🔄 A carregar elementos da página ID: ${pageId}`);
+        const response = await fetch(`${API_BASE_URL}/pages/${pageId}/elements`);
+        const elementsData = await response.json();
+        this.elements = elementsData.map(el => ({
+            ...el,
+            position: typeof el.position === 'string' ? JSON.parse(el.position) : el.position,
+            properties: typeof el.properties === 'string' ? JSON.parse(el.properties) : el.properties,
+        }));
+        this.currentPageId = pageId;
+        this.selectedElementId = null;
+        this.hasUnsavedChanges = false;
+        
+        // Inicia auto-save para a nova página - somente se habilitado
+        if (this.autoSaveEnabled) {
+            this.startAutoSave();
+        }
+    },
+
+    async createNewPage(pageName) {
+        if (!this.currentProjectId) return;
+        console.log(`✨ A criar nova página: ${pageName}`);
+        const response = await fetch(`${API_BASE_URL}/projects/${this.currentProjectId}/pages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: pageName }),
+        });
+        
+        if (response.ok) {
+          // Recarrega as páginas do projeto
+          const pagesResponse = await fetch(`${API_BASE_URL}/projects/${this.currentProjectId}/pages`);
+          this.pages = await pagesResponse.json();
+          
+          const newPage = await response.json();
+          await this.loadPage(newPage.id); // Carrega a nova página vazia
+        }
+    },
+
+    // --- Actions de Elementos (modificadas) ---
+    addElement(type, position) {
+      if (!this.currentPageId) {
+          alert("Por favor, crie ou carregue uma página primeiro.");
+          return;
+      }
+      
+      const elementId = 'el_' + Date.now() + Math.random().toString(36).substr(2, 9);
       const newElement = {
-        id: Date.now(),
+        id: elementId,
         type: type,
-        position: {
-          x: position.x,
-          y: position.y,
-        },
+        position: { x: position.x, y: position.y },
         properties: this.getDefaultProperties(type),
       };
-
-      console.log('🆕 Novo elemento criado:', newElement);
       
       this.elements.push(newElement);
-      this.selectedElementId = newElement.id; // Auto-seleciona o novo elemento
+      this.selectedElementId = elementId;
+      this.hasUnsavedChanges = true; // Marca como tendo mudanças
       
-      console.log('📋 Estado atual dos elementos:', this.elements);
-      console.log('🎯 Elemento selecionado:', this.selectedElementId);
+      console.log(`✅ Elemento ${type} adicionado:`, newElement);
+      
+      // Auto-save após adicionar elemento - somente se habilitado
+      if (this.autoSaveEnabled) {
+        this.triggerAutoSave();
+      }
     },
 
     selectElement(elementId) {
-      console.log('🎯 Selecionando elemento ID:', elementId);
       this.selectedElementId = elementId;
-      console.log('✅ Elemento selecionado:', this.selectedElement);
+      console.log(`🎯 Elemento selecionado: ${elementId}`);
     },
 
-    removeElement(elementId) {
-      console.log('🗑️ Removendo elemento ID:', elementId);
-      this.elements = this.elements.filter(element => element.id !== elementId);
-      
-      // Se o elemento removido estava selecionado, desseleciona
-      if (this.selectedElementId === elementId) {
-        this.selectedElementId = null;
+    updateElementProperty(elementId, property, value) {
+      const element = this.elements.find(el => el.id === elementId);
+      if (element) {
+        element.properties[property] = value;
+        this.hasUnsavedChanges = true; // Marca como tendo mudanças
+        console.log(`📝 Propriedade ${property} atualizada para: ${value}`);
+        
+        // Auto-save após atualizar propriedade - somente se habilitado
+        if (this.autoSaveEnabled) {
+          this.triggerAutoSave();
+        }
       }
-      
-      console.log('📋 Estado após remoção:', this.elements);
     },
-
+    
     updateElementPosition(elementId, newPosition) {
       const element = this.elements.find(el => el.id === elementId);
       if (element) {
         element.position = { ...newPosition };
-        console.log('📍 Posição atualizada para elemento', elementId, ':', newPosition);
-      }
-    },
-
-    updateElementProperty(elementId, propertyKey, value) {
-      console.log('🔧 Store updateElementProperty chamado:', { elementId, propertyKey, value });
-      
-      const element = this.elements.find(el => el.id === elementId);
-      if (element) {
-        // Use Vue's reactivity system properly
-        element.properties[propertyKey] = value;
+        this.hasUnsavedChanges = true; // Marca como tendo mudanças
         
-        console.log('✅ Propriedade atualizada:', propertyKey, '=', value, 'para elemento', elementId);
-        console.log('📊 Elemento atualizado:', element);
-        console.log('📋 Estado completo dos elementos:', this.elements);
-      } else {
-        console.log('❌ Elemento não encontrado:', elementId);
+        // Auto-save após mover elemento (com delay para drag contínuo) - somente se habilitado
+        if (this.autoSaveEnabled) {
+          this.triggerAutoSave(1000);
+        }
       }
     },
 
-    // Método helper para definir propriedades padrão baseadas no tipo
+    removeElement(elementId) {
+      const index = this.elements.findIndex(el => el.id === elementId);
+      if (index !== -1) {
+        this.elements.splice(index, 1);
+        this.selectedElementId = null;
+        this.hasUnsavedChanges = true;
+        console.log(`🗑️ Elemento ${elementId} removido`);
+        
+        // Auto-save após remover elemento - somente se habilitado
+        if (this.autoSaveEnabled) {
+          this.triggerAutoSave();
+        }
+      }
+    },
+
     getDefaultProperties(type) {
       const defaults = {
         Text: {
           text: 'Texto',
           fontSize: 16,
           color: '#000000',
-          fontWeight: 'normal',
+          backgroundColor: 'white',
         },
         Button: {
           text: 'Botão',
+          fontSize: 16,
           backgroundColor: '#007bff',
-          color: '#ffffff',
-          borderRadius: 4,
-          padding: '8px 16px',
+          color: 'white',
+          action: ''
         },
         Input: {
           placeholder: 'Digite aqui...',
-          type: 'text',
-          borderColor: '#ccc',
-          borderRadius: 4,
-          padding: '8px',
+          fontSize: 14,
+          backgroundColor: 'white',
         },
         Group: {
-          backgroundColor: '#f8f9fa',
-          borderColor: '#dee2e6',
-          borderRadius: 4,
-          padding: '16px',
-          minWidth: 200,
-          minHeight: 100,
-        },
+          backgroundColor: '#f0f0f0',
+        }
       };
-
       return defaults[type] || {};
     },
+
+    setPreviewMode(mode) {
+      console.log(`🖼️ Alterando modo de visualização para: ${mode}`);
+      this.previewMode = mode;
+    },
+
+    toggleEditPreview() {
+      this.isPreviewMode = !this.isPreviewMode;
+      console.log(`🔄 Modo alterado para: ${this.isPreviewMode ? 'Preview' : 'Edição'}`);
+    },
+
+    // Funções para responsividade
+    getResponsivePosition(element, targetMode) {
+      const currentDimensions = this.baseDimensions[this.previewMode];
+      const targetDimensions = this.baseDimensions[targetMode];
+      
+      // Converte posição absoluta para percentual
+      const percentX = (element.position.x / currentDimensions.width) * 100;
+      const percentY = (element.position.y / currentDimensions.height) * 100;
+      
+      // Converte de volta para posição absoluta na nova dimensão
+      return {
+        x: (percentX * targetDimensions.width) / 100,
+        y: (percentY * targetDimensions.height) / 100
+      };
+    },
+
+    getResponsiveFontSize(baseFontSize, targetMode) {
+      const scaleFactor = {
+        desktop: 1.0,
+        tablet: 0.9,
+        mobile: 0.8
+      };
+      return Math.round(baseFontSize * (scaleFactor[targetMode] || 1.0));
+    },
+
+    getCurrentDimensions() {
+      return this.baseDimensions[this.previewMode];
+    },
+
+    // --- FUNÇÕES DE AUTO-SAVE ---
+    async autoSaveCurrentPage() {
+      if (!this.currentPageId || !this.currentProjectId || this.isSaving || !this.autoSaveEnabled) {
+        return;
+      }
+      
+      this.isSaving = true;
+      try {
+        console.log(`💾 Auto-salvando página ID: ${this.currentPageId}`);
+        await fetch(`${API_BASE_URL}/pages/${this.currentPageId}/elements`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              elements: this.elements.map(el => ({ ...el, project_id: this.currentProjectId }))
+          }),
+        });
+        
+        this.hasUnsavedChanges = false;
+        console.log('✅ Auto-save realizado com sucesso!');
+        
+        // Mostrar feedback visual discreto
+        this.showAutoSaveFeedback();
+        
+      } catch (error) {
+        console.error('❌ Erro no auto-save:', error);
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    triggerAutoSave(delay = 2000) {
+      if (!this.autoSaveEnabled || !this.currentPageId) return;
+      
+      // Cancela auto-save anterior se existir
+      if (this.autoSaveTimeout) {
+        clearTimeout(this.autoSaveTimeout);
+      }
+      
+      // Agenda novo auto-save
+      this.autoSaveTimeout = setTimeout(() => {
+        if (this.hasUnsavedChanges && this.autoSaveEnabled) {
+          this.autoSaveCurrentPage();
+        }
+      }, delay);
+    },
+
+    startAutoSave() {
+      if (!this.autoSaveEnabled) return;
+      
+      // Para auto-save anterior
+      this.stopAutoSave();
+      
+      // Auto-save periódico a cada 30 segundos
+      this.autoSaveInterval = setInterval(() => {
+        if (this.hasUnsavedChanges && this.currentPageId && !this.isSaving && this.autoSaveEnabled) {
+          this.autoSaveCurrentPage();
+        }
+      }, 30000);
+    },
+
+    stopAutoSave() {
+      if (this.autoSaveInterval) {
+        clearInterval(this.autoSaveInterval);
+        this.autoSaveInterval = null;
+      }
+      if (this.autoSaveTimeout) {
+        clearTimeout(this.autoSaveTimeout);
+        this.autoSaveTimeout = null;
+      }
+    },
+
+    showAutoSaveFeedback() {
+      // Função para mostrar feedback visual discreto - somente se auto-save está habilitado
+      if (!this.autoSaveEnabled) return;
+      
+      const event = new CustomEvent('autoSaveCompleted', {
+        detail: { message: 'Página salva automaticamente' }
+      });
+      window.dispatchEvent(event);
+    },
+
+    // Função para desativar/ativar auto-save
+    toggleAutoSave() {
+      this.autoSaveEnabled = !this.autoSaveEnabled;
+      console.log(`🔄 Auto-save ${this.autoSaveEnabled ? 'ATIVADO' : 'DESATIVADO'}`);
+      
+      if (this.autoSaveEnabled) {
+        this.startAutoSave();
+      } else {
+        this.stopAutoSave();
+      }
+    },
+
+    // Função manual para salvar (quando auto-save está desabilitado)
+    async saveCurrentPageManually() {
+      if (!this.currentPageId || !this.currentProjectId || this.isSaving) {
+        return;
+      }
+      
+      this.isSaving = true;
+      try {
+        console.log(`💾 Salvando página manualmente ID: ${this.currentPageId}`);
+        await fetch(`${API_BASE_URL}/pages/${this.currentPageId}/elements`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              elements: this.elements.map(el => ({ ...el, project_id: this.currentProjectId }))
+          }),
+        });
+        
+        this.hasUnsavedChanges = false;
+        console.log('✅ Página salva manualmente com sucesso!');
+        alert('Página salva com sucesso!');
+        
+      } catch (error) {
+        console.error('❌ Erro ao salvar página:', error);
+        alert('Erro ao salvar página!');
+      } finally {
+        this.isSaving = false;
+      }
+    }
   },
 });

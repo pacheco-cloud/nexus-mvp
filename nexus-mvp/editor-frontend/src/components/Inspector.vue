@@ -36,6 +36,17 @@
         />
       </div>
 
+      <div style="background: #f0e6ff; padding: 10px; margin: 10px 0;" v-if="editorStore.selectedElement.type === 'Button'">
+        <label><strong>⚡ AÇÃO AO CLICAR (ALERTA):</strong></label>
+        <input 
+          type="text" 
+          placeholder="Mensagem do alerta..."
+          :value="editorStore.selectedElement.properties.action?.message || ''"
+          @input="updateActionMessage($event.target.value)"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid purple;"
+        />
+      </div>
+
       <div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
         <strong>📋 INFO:</strong><br>
         ID: {{ editorStore.selectedElement.id }}<br>
@@ -75,6 +86,14 @@ function updateBackgroundColor(value) {
   if (editorStore.selectedElementId) {
     editorStore.updateElementProperty(editorStore.selectedElementId, 'backgroundColor', value);
   }
+}
+
+// Adicione esta função no script do Inspector.vue
+function updateActionMessage(message) {
+  if (!editorStore.selectedElementId) return;
+  // Cria o objeto de ação apenas se houver uma mensagem
+  const action = message ? { type: 'alert', message: message } : null;
+  editorStore.updateElementProperty(editorStore.selectedElementId, 'action', action);
 }
 </script>
 

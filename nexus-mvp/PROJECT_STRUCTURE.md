@@ -1,4 +1,4 @@
-# 🌳 Estrutura de Árvore Completa - Nexus MVP
+# 🌳 Estrutura Completa - Nexus MVP Multi-Página
 
 ## 📁 Visão Geral da Arquitetura
 
@@ -6,97 +6,99 @@
 nexus-mvp/
 ├── 📂 backend/                              # 🔧 BACKEND SERVICES
 │   └── 📂 api-gateway/                      # Gateway principal da API
-│       ├── 📄 server.js                     # 🚀 Servidor Express principal
-│       ├── 📄 translator.js                 # 🔄 Engine de tradução JSON→HTML/CSS
-│       ├── 📄 package.json                  # 📦 Dependências do backend
-│       ├── 📄 Dockerfile                    # 🐳 Container de produção
-│       └── 📁 published/                    # 📤 Páginas geradas (runtime)
-│           ├── page-1692547890123.html      # 🌐 Exemplo de página publicada
-│           └── page-1692547890456.html      # 🌐 Outra página publicada
+│       ├── 📄 server.js                     # 🚀 API RESTful com PostgreSQL
+│       │                                    #     ├─ Endpoints de projetos/páginas
+│       │                                    #     ├─ CRUD completo
+│       │                                    #     └─ Auto-criação página home
+│       ├── 📄 db.js                         # �️ Configuração PostgreSQL
+│       ├── 📄 init-db.js                    # � Schema e migrações
+│       │                                    #     ├─ Tabelas: projects, pages, elements
+│       │                                    #     └─ Relacionamentos 1:N
+│       ├── � translator.js                 # � Engine JSON→HTML/CSS responsivo
+│       ├── 📄 package.json                  # 📦 Dependências backend
+│       └── 📄 Dockerfile                    # 🐳 Container backend
 │
 ├── 📂 editor-frontend/                      # 🎨 FRONTEND APPLICATION
-│   ├── 📂 src/                              # Código fonte Vue.js
-│   │   ├── 📄 main.js                       # 🚪 Ponto de entrada da aplicação
+│   ├── 📂 src/                              # Código fonte Vue.js 3
+│   │   ├── 📄 main.js                       # 🚪 Configuração Vue + Pinia
 │   │   ├── 📄 App.vue                       # 🏠 Componente raiz
-│   │   │                                    #     ├─ Layout principal
-│   │   │                                    #     ├─ Função publishPage()
-│   │   │                                    #     └─ Integração Toolbox/Canvas/Inspector
+│   │   │                                    #     ├─ Navegação projetos
+│   │   │                                    #     ├─ Auto-save toggle
+│   │   │                                    #     ├─ Save manual
+│   │   │                                    #     └─ Confirmações de saída
 │   │   │
 │   │   ├── 📂 components/                   # 🧩 Componentes Vue
-│   │   │   ├── 📄 Toolbox.vue               # 🧰 Paleta de componentes
-│   │   │   │                                #     ├─ Botões: Texto, Input, Button, Group
-│   │   │   │                                #     └─ Função: addElement()
+│   │   │   ├── 📄 ProjectsDashboard.vue     # 📋 Dashboard inicial
+│   │   │   │                                #     ├─ Lista de projetos
+│   │   │   │                                #     ├─ Criação de projetos
+│   │   │   │                                #     └─ Navegação para editor
 │   │   │   │
-│   │   │   ├── 📄 Canvas.vue                # 🎯 Área de design principal
-│   │   │   │                                #     ├─ Renderiza elementos do store
-│   │   │   │                                #     ├─ Detecção de cliques
-│   │   │   │                                #     └─ Interface WYSIWYG
+│   │   │   ├── 📄 PagesPanel.vue            # 📄 Gestão visual de páginas
+│   │   │   │                                #     ├─ Lista páginas do projeto
+│   │   │   │                                #     ├─ Criação nova página
+│   │   │   │                                #     ├─ Navegação entre páginas
+│   │   │   │                                #     └─ Indicador página atual
 │   │   │   │
-│   │   │   ├── 📄 Inspector.vue             # 🔍 Painel de propriedades
-│   │   │   │                                #     ├─ Edição de texto (content)
-│   │   │   │                                #     ├─ Cores (textColor, backgroundColor)
-│   │   │   │                                #     ├─ Dimensões (width, height)
-│   │   │   │                                #     └─ Posição (x, y)
+│   │   │   ├── 📄 Toolbox.vue               # 🧰 Paleta + controles
+│   │   │   │                                #     ├─ Elementos: Text, Button, Image, etc
+│   │   │   │                                #     ├─ Integração PagesPanel
+│   │   │   │                                #     └─ Função addElement()
 │   │   │   │
-│   │   │   └── 📄 CanvasElement.vue         # 🎭 Elemento individual
-│   │   │                                    #     ├─ Drag & Drop customizado
-│   │   │                                    #     ├─ Posicionamento absoluto
-│   │   │                                    #     ├─ Visual feedback de seleção
-│   │   │                                    #     └─ Eventos mouse (down/move/up)
+│   │   │   ├── 📄 Canvas.vue                # � Editor drag-drop + preview
+│   │   │   │                                #     ├─ Modo Edit vs Preview
+│   │   │   │                                #     ├─ Sistema responsivo
+│   │   │   │                                #     ├─ Renderização elementos
+│   │   │   │                                #     └─ Iframe para preview
+│   │   │   │
+│   │   │   ├── 📄 Inspector.vue             # � Painel propriedades
+│   │   │   │                                #     ├─ Edição em tempo real
+│   │   │   │                                #     ├─ Propriedades responsivas
+│   │   │   │                                #     └─ Preview instantâneo
+│   │   │   │
+│   │   │   └── 📄 CanvasElement.vue         # � Elemento responsivo
+│   │   │                                    #     ├─ Drag & Drop avançado
+│   │   │                                    #     ├─ Scaling automático
+│   │   │                                    #     ├─ Feedback visual
+│   │   │                                    #     └─ Integração useResponsive
 │   │   │
-│   │   └── 📂 store/                        # 🗄️ Gerenciamento de estado
-│   │       └── 📄 editor.js                 # 📊 Store Pinia principal
-│   │                                        #     ├─ State: elements[], selectedElement
-│   │                                        #     ├─ Actions: addElement(), updateElement()
-│   │                                        #     └─ Getters: elementos computados
+│   │   ├── � store/                        # �️ Estado global Pinia
+│   │   │   └── 📄 editor.js                 # 📊 Store principal
+│   │   │                                    #     ├─ Estado multi-página completo
+│   │   │                                    #     ├─ Auto-save inteligente
+│   │   │                                    #     ├─ CRUD projetos/páginas
+│   │   │                                    #     ├─ Gestão elementos
+│   │   │                                    #     └─ Sistema de feedback
+│   │   │
+│   │   ├── 📂 composables/                  # 🔧 Utilitários Vue
+│   │   │   └── 📄 useResponsive.js          # � Sistema responsividade
+│   │   │                                    #     ├─ Detecção tamanho tela
+│   │   │                                    #     ├─ Breakpoints mobile/desktop
+│   │   │                                    #     └─ Scaling automático
+│   │   │
+│   │   └── 📂 utils/                        # 🛠️ Utilitários
+│   │       └── 📄 translator.js             # 🔄 Helpers tradução
 │   │
-│   ├── 📂 public/                           # 🌐 Recursos estáticos
-│   │   └── 📄 favicon.ico                   # 🖼️ Ícone da aplicação
-│   │
-│   ├── 📄 index.html                        # 📋 Template HTML base
-│   │                                        #     ├─ Meta tags
-│   │                                        #     ├─ Título da aplicação
-│   │                                        #     └─ Div root para Vue
-│   │
-│   ├── 📄 package.json                      # 📦 Dependências frontend
+│   ├── 📄 package.json                      # 📦 Dependências Vue.js
 │   │                                        #     ├─ Vue.js 3 (^3.4.21)
 │   │                                        #     ├─ Pinia (^2.1.7)
 │   │                                        #     ├─ Vite (^5.2.0)
 │   │                                        #     └─ @vueuse/core (^10.9.0)
 │   │
-│   ├── 📄 vite.config.js                    # ⚡ Configuração do Vite
-│   │                                        #     ├─ Plugin Vue
-│   │                                        #     ├─ Dev server config
-│   │                                        #     └─ Build options
-│   │
+│   ├── 📄 vite.config.js                    # ⚡ Configuração Vite
+│   ├── 📄 index.html                        # 📋 Template HTML
 │   ├── 📄 Dockerfile                        # 🐳 Container produção
-│   │                                        #     ├─ Build estático
-│   │                                        #     └─ Nginx serve
-│   │
 │   └── 📄 Dockerfile.dev                    # 🔧 Container desenvolvimento
-│                                            #     ├─ Hot reload habilitado
-│                                            #     ├─ Volume sync
-│                                            #     └─ Dev server Vite
 │
-├── 📄 docker-compose.dev.yml                # 🐳 Orquestração containers
-│                                            #     ├─ nexus-editor-dev (port 8080)
-│                                            #     ├─ nexus-api-gateway (port 3002)
-│                                            #     └─ Networks e volumes
+├── 📄 docker-compose.dev.yml                # � Orquestração 3 serviços
+│                                            #     ├─ nexus-editor-dev (5173)
+│                                            #     ├─ nexus-api-gateway (3000)
+│                                            #     └─ postgres (5432)
 │
-├── 📄 .gitignore                            # 🚫 Arquivos ignorados Git
-│                                            #     ├─ node_modules/
-│                                            #     ├─ .env files
-│                                            #     └─ build artifacts
-│
+├── 📄 .gitignore                            # � Arquivos ignorados
 ├── 📄 README.md                             # 📖 Documentação principal
-│                                            #     ├─ Visão geral
-│                                            #     ├─ Instalação e uso
-│                                            #     └─ Arquitetura
-│
-└── 📄 TECHNICAL_DOCS.md                     # 🔬 Documentação técnica
-                                             #     ├─ Análise de código
-                                             #     ├─ Fluxos de dados
-                                             #     └─ Debugging guides
+├── 📄 PROJECT_STRUCTURE.md                  # 🌳 Esta estrutura
+├── 📄 TECHNICAL_DOCS.md                     # 🔬 Documentação técnica
+└── 📄 ENGINEER_GUIDE.md                     # 👨‍💻 Guia desenvolvedores
 ```
 
 ---
