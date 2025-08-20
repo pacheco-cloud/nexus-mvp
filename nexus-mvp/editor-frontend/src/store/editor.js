@@ -13,6 +13,13 @@ export const useEditorStore = defineStore('editor', {
     previewMode: 'desktop',
     isPreviewMode: false, // true = preview, false = edição
     
+    // Sistema de histórico (NOVO)
+    history: [],
+    historyIndex: -1,
+    maxHistorySize: 50,
+    isUndoRedoOperation: false,
+    positionUpdateTimeout: null,
+    
     // Auto-save
     autoSaveEnabled: true,
     autoSaveInterval: null,
@@ -41,9 +48,66 @@ export const useEditorStore = defineStore('editor', {
       return state.pages.find(p => p.id === state.currentPageId);
     },
     elementCount: (state) => state.elements.length,
+    
+    // Getters para Undo/Redo (NOVO)
+    canUndo: (state) => state.historyIndex > 0,
+    canRedo: (state) => state.historyIndex < state.history.length - 1,
   },
 
   actions: {
+    // --- SISTEMA DE HISTÓRICO (NOVO) ---
+    saveToHistory() {
+      if (!this.currentPageId || this.isUndoRedoOperation) return;
+      
+      // Remove histórico futuro se houver
+      this.history = this.history.slice(0, this.historyIndex + 1);
+      
+      // Salva estado atual
+      const snapshot = {
+        elements: JSON.parse(JSON.stringify(this.elements)),
+        timestamp: Date.now()
+      };
+      
+      this.history.push(snapshot);
+      
+      // Limita tamanho do histórico
+      if (this.history.length > this.maxHistorySize) {
+        this.history.shift();
+      } else {
+        this.historyIndex++;
+      }
+    },
+
+    undo() {
+      if (this.historyIndex > 0) {
+        this.isUndoRedoOperation = true;
+        this.historyIndex--;
+        this.elements = JSON.parse(JSON.stringify(this.history[this.historyIndex].elements));
+        this.selectedElementId = null;
+        this.hasUnsavedChanges = true;
+        
+        if (this.autoSaveEnabled) {
+          this.triggerAutoSave();
+        }
+        this.isUndoRedoOperation = false;
+      }
+    },
+
+    redo() {
+      if (this.historyIndex < this.history.length - 1) {
+        this.isUndoRedoOperation = true;
+        this.historyIndex++;
+        this.elements = JSON.parse(JSON.stringify(this.history[this.historyIndex].elements));
+        this.selectedElementId = null;
+        this.hasUnsavedChanges = true;
+        
+        if (this.autoSaveEnabled) {
+          this.triggerAutoSave();
+        }
+        this.isUndoRedoOperation = false;
+      }
+    },
+    
     // --- ACTIONS DE PROJETOS (com modificações) ---
     async fetchProjects() {
       const response = await fetch(`${API_BASE_URL}/projects`);
@@ -94,6 +158,10 @@ export const useEditorStore = defineStore('editor', {
     
     // --- NOVAS ACTIONS PARA PÁGINAS ---
     async loadPage(pageId) {
+        // Limpa histórico ao trocar de página (NOVO)
+        this.history = [];
+        this.historyIndex = -1;
+        
         // Salva a página atual antes de trocar (auto-save) - somente se habilitado
         if (this.currentPageId && this.hasUnsavedChanges && this.autoSaveEnabled) {
             await this.autoSaveCurrentPage();
@@ -107,6 +175,10 @@ export const useEditorStore = defineStore('editor', {
             position: typeof el.position === 'string' ? JSON.parse(el.position) : el.position,
             properties: typeof el.properties === 'string' ? JSON.parse(el.properties) : el.properties,
         }));
+        
+        // Salva estado inicial no histórico (NOVO)
+        this.saveToHistory();
+        
         this.currentPageId = pageId;
         this.selectedElementId = null;
         this.hasUnsavedChanges = false;
@@ -143,6 +215,9 @@ export const useEditorStore = defineStore('editor', {
           return;
       }
       
+      // Proteção contra undo/redo (NOVO)
+      if (this.isUndoRedoOperation) return;
+      
       const elementId = 'el_' + Date.now() + Math.random().toString(36).substr(2, 9);
       const newElement = {
         id: elementId,
@@ -155,7 +230,8 @@ export const useEditorStore = defineStore('editor', {
       this.selectedElementId = elementId;
       this.hasUnsavedChanges = true; // Marca como tendo mudanças
       
-
+      // Salva no histórico (NOVO)
+      this.saveToHistory();
       
       // Auto-save após adicionar elemento - somente se habilitado
       if (this.autoSaveEnabled) {
@@ -169,11 +245,16 @@ export const useEditorStore = defineStore('editor', {
     },
 
     updateElementProperty(elementId, property, value) {
+      // Proteção contra undo/redo (NOVO)
+      if (this.isUndoRedoOperation) return;
+      
       const element = this.elements.find(el => el.id === elementId);
       if (element) {
         element.properties[property] = value;
         this.hasUnsavedChanges = true; // Marca como tendo mudanças
-
+        
+        // Salva no histórico (NOVO)
+        this.saveToHistory();
         
         // Auto-save após atualizar propriedade - somente se habilitado
         if (this.autoSaveEnabled) {
@@ -188,6 +269,18 @@ export const useEditorStore = defineStore('editor', {
         element.position = { ...newPosition };
         this.hasUnsavedChanges = true; // Marca como tendo mudanças
         
+        // Salva no histórico com debounce (NOVO)
+        if (!this.isUndoRedoOperation) {
+          if (this.positionUpdateTimeout) {
+            clearTimeout(this.positionUpdateTimeout);
+          }
+          
+          this.positionUpdateTimeout = setTimeout(() => {
+            this.saveToHistory();
+            this.positionUpdateTimeout = null;
+          }, 500);
+        }
+        
         // Auto-save após mover elemento (com delay para drag contínuo) - somente se habilitado
         if (this.autoSaveEnabled) {
           this.triggerAutoSave(1000);
@@ -196,12 +289,17 @@ export const useEditorStore = defineStore('editor', {
     },
 
     removeElement(elementId) {
+      // Proteção contra undo/redo (NOVO)
+      if (this.isUndoRedoOperation) return;
+      
       const index = this.elements.findIndex(el => el.id === elementId);
       if (index !== -1) {
         this.elements.splice(index, 1);
         this.selectedElementId = null;
         this.hasUnsavedChanges = true;
-
+        
+        // Salva no histórico (NOVO)
+        this.saveToHistory();
         
         // Auto-save após remover elemento - somente se habilitado
         if (this.autoSaveEnabled) {
@@ -232,6 +330,14 @@ export const useEditorStore = defineStore('editor', {
         },
         Group: {
           backgroundColor: '#f0f0f0',
+        },
+        Image: {
+          src: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Nova+Imagem',
+          alt: 'Imagem',
+          width: 300,
+          height: 200,
+          objectFit: 'cover',
+          borderRadius: 8
         }
       };
       return defaults[type] || {};

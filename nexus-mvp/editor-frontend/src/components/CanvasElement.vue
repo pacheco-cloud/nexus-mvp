@@ -7,7 +7,21 @@
     @click.stop="selectElement"
     @mousedown="startDrag"
   >
-    <strong>{{ element.properties.text || element.type }}</strong>
+    <img 
+      v-if="element.type === 'Image'"
+      :src="element.properties.src || 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Erro+na+Imagem'"
+      :alt="element.properties.alt || 'Imagem'"
+      :style="{
+        width: '100%',
+        height: '100%',
+        objectFit: element.properties.objectFit || 'cover',
+        borderRadius: (element.properties.borderRadius || 0) + 'px',
+        display: 'block'
+      }"
+      @error="handleImageError"
+      draggable="false"
+    />
+    <strong v-else>{{ element.properties.text || element.type }}</strong>
   </div>
 </template>
 
@@ -123,6 +137,10 @@ function stopDrag() {
     x: position.value.x,
     y: position.value.y
   });
+}
+
+function handleImageError(event) {
+  event.target.src = 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=Imagem+Nao+Encontrada';
 }
 
 // Estilo computado com responsividade FORÇADA

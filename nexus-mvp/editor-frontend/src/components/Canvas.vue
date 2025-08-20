@@ -127,8 +127,28 @@ const iframeContent = computed(() => {
   
   // Gera apenas os elementos com estilos inline diretos
   const elementsHTML = elements.map(el => {
-    const textContent = el.properties.text || el.type;
     const props = el.properties;
+    
+    // Tratamento específico para elementos Image
+    if (el.type === 'Image') {
+      const style = `
+        position: absolute; 
+        left: ${el.position.x}px; 
+        top: ${el.position.y}px;
+        width: ${props.width || 200}px;
+        height: ${props.height || 150}px;
+        border-radius: ${props.borderRadius || 0}px;
+        object-fit: ${props.objectFit || 'cover'};
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      `.replace(/\s+/g, ' ').trim();
+      
+      return `<img id="${el.id}" class="element" src="${props.src || 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Imagem+Preview'}" alt="${props.alt || 'Imagem'}" style="${style}" onerror="this.src='https://via.placeholder.com/300x200/FF9800/FFFFFF?text=Erro+Preview'" />`;
+    }
+    
+    // Tratamento para outros elementos (Text, Button, etc.)
+    const textContent = el.properties.text || el.type;
     
     // Estilos específicos por tipo de elemento
     const isButton = el.type === 'Button';

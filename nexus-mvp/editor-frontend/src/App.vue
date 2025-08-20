@@ -15,6 +15,24 @@
         <button @click="editorStore.setPreviewMode('desktop')" :class="{ active: editorStore.previewMode === 'desktop' }">🖥️</button>
         <button @click="editorStore.setPreviewMode('tablet')" :class="{ active: editorStore.previewMode === 'tablet' }">📱</button>
         <button @click="editorStore.setPreviewMode('mobile')" :class="{ active: editorStore.previewMode === 'mobile' }">📲</button>
+        
+        <!-- Controles de Histórico (NOVO) -->
+        <div class="control-separator"></div>
+        <button 
+          @click="editorStore.undo()" 
+          :disabled="!editorStore.canUndo"
+          class="history-button"
+          title="Desfazer (Ctrl+Z)">
+          ↶
+        </button>
+        <button 
+          @click="editorStore.redo()" 
+          :disabled="!editorStore.canRedo"
+          class="history-button"
+          title="Refazer (Ctrl+Y)">
+          ↷
+        </button>
+        
         <div class="mode-separator"></div>
         <button @click="editorStore.toggleEditPreview()" :class="{ active: editorStore.isPreviewMode }" class="preview-toggle">
           {{ editorStore.isPreviewMode ? '🎨 Editar' : '👁️ Preview' }}
@@ -80,13 +98,44 @@ onMounted(() => {
     showToast(event.detail.message);
   };
   window.addEventListener('autoSaveCompleted', autoSaveListener);
+  
+  // Atalhos de teclado para Undo/Redo (NOVO)
+  document.addEventListener('keydown', handleKeyboardShortcuts);
 });
 
 onUnmounted(() => {
   if (autoSaveListener) {
     window.removeEventListener('autoSaveCompleted', autoSaveListener);
   }
+  // Cleanup atalhos (NOVO)
+  document.removeEventListener('keydown', handleKeyboardShortcuts);
 });
+
+// Função para atalhos de teclado (NOVO)
+function handleKeyboardShortcuts(event) {
+  // Ignora se estiver digitando em um input, textarea ou elemento editável
+  const activeElement = document.activeElement;
+  const isInputFocused = activeElement && (
+    activeElement.tagName === 'INPUT' || 
+    activeElement.tagName === 'TEXTAREA' ||
+    activeElement.contentEditable === 'true' ||
+    activeElement.hasAttribute('contenteditable')
+  );
+  
+  if (isInputFocused) {
+    return;
+  }
+  
+  if (event.ctrlKey || event.metaKey) {
+    if (event.key === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      editorStore.undo();
+    } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+      event.preventDefault();
+      editorStore.redo();
+    }
+  }
+}
 
 function showToast(message) {
   // Criar elemento de toast
@@ -433,8 +482,113 @@ body {
   opacity: 0.6;
 }
 
+/* Estilos para controles de histórico (NOVO) */
+.control-separator {
+  width: 1px;
+  height: 20px;
+  background: #dee2e6;
+  margin: 0 8px;
+}
+
+.history-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s;
+  min-width: 32px;
+}
+
+.history-button:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.history-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #adb5bd;
+  transform: none;
+}
+
+.history-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* Melhorias de Responsividade (EXTRAÍDO) */
+@media (max-width: 768px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 10px 15px;
+    height: auto;
+    min-height: 50px;
+  }
+  
+  .header-left {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .view-controls {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  
+  .view-controls button {
+    padding: 4px 8px;
+    font-size: 16px;
+  }
+  
+  .responsive-indicator {
+    margin-left: 0;
+    margin-top: 5px;
+  }
+  
+  .save-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+  }
+  
+  .auto-save-indicator {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  
+  .history-button {
+    padding: 5px 8px;
+    min-width: 28px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 16px;
+  }
+  
+  .back-button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .view-controls button {
+    padding: 3px 6px;
+    font-size: 14px;
+  }
+  
+  .preview-toggle {
+    min-width: 70px !important;
+    font-size: 12px !important;
+  }
 }
 </style>

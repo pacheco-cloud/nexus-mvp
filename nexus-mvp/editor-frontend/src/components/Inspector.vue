@@ -47,6 +47,70 @@
         />
       </div>
 
+      <!-- PROPRIEDADES DE IMAGEM -->
+      <div v-if="editorStore.selectedElement.type === 'Image'" 
+           style="background: #e6f3ff; padding: 10px; margin: 10px 0;">
+        <label><strong>🔗 URL DA IMAGEM:</strong></label>
+        <input 
+          type="text" 
+          :value="editorStore.selectedElement.properties.src || ''"
+          @input="updateProperty('src', $event.target.value)"
+          placeholder="https://exemplo.com/imagem.jpg"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        />
+        
+        <label><strong>📝 TEXTO ALTERNATIVO:</strong></label>
+        <input 
+          type="text" 
+          :value="editorStore.selectedElement.properties.alt || ''"
+          @input="updateProperty('alt', $event.target.value)"
+          placeholder="Descrição da imagem"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        />
+        
+        <label><strong>📐 LARGURA (px):</strong></label>
+        <input 
+          type="number" 
+          :value="editorStore.selectedElement.properties.width || 300"
+          @input="updateProperty('width', parseInt($event.target.value) || 300)"
+          min="50"
+          max="1200"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        />
+        
+        <label><strong>📏 ALTURA (px):</strong></label>
+        <input 
+          type="number" 
+          :value="editorStore.selectedElement.properties.height || 200"
+          @input="updateProperty('height', parseInt($event.target.value) || 200)"
+          min="50"
+          max="800"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        />
+        
+        <label><strong>🖼️ AJUSTE:</strong></label>
+        <select 
+          :value="editorStore.selectedElement.properties.objectFit || 'cover'"
+          @change="updateProperty('objectFit', $event.target.value)"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        >
+          <option value="cover">Cobrir (Cover)</option>
+          <option value="contain">Conter (Contain)</option>
+          <option value="fill">Preencher (Fill)</option>
+          <option value="scale-down">Reduzir (Scale-down)</option>
+        </select>
+        
+        <label><strong>🔄 BORDA ARREDONDADA (px):</strong></label>
+        <input 
+          type="number" 
+          :value="editorStore.selectedElement.properties.borderRadius || 0"
+          @input="updateProperty('borderRadius', parseInt($event.target.value) || 0)"
+          min="0"
+          max="50"
+          style="width: 100%; padding: 10px; font-size: 16px; border: 3px solid #2196f3; margin: 5px 0;"
+        />
+      </div>
+
       <div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
         <strong>📋 INFO:</strong><br>
         ID: {{ editorStore.selectedElement.id }}<br>
@@ -94,6 +158,12 @@ function updateActionMessage(message) {
   // Cria o objeto de ação apenas se houver uma mensagem
   const action = message ? { type: 'alert', message: message } : null;
   editorStore.updateElementProperty(editorStore.selectedElementId, 'action', action);
+}
+
+function updateProperty(property, value) {
+  if (editorStore.selectedElementId) {
+    editorStore.updateElementProperty(editorStore.selectedElementId, property, value);
+  }
 }
 </script>
 

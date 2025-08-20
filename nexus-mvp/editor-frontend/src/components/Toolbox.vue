@@ -34,6 +34,7 @@ const availableComponents = ref([
   { type: 'Button', name: 'Botão' },
   { type: 'Input', name: 'Input' },
   { type: 'Group', name: 'Grupo' },
+  { type: 'Image', name: '🖼️ Imagem' },
 ]);
 
 // Função para lidar com o início do drag
